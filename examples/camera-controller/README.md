@@ -212,6 +212,25 @@ v4l2-ctl -d /dev/video0 --list-formats-ext
 Wave your hand in front of the camera to trigger live view; a video window will
 appear, confirming that the stream is active.
 
+4. To stop the active live view stream, use the `liveview stop` command. The
+   `--video-stream-id` flag is optional: when omitted, the controller stops
+   the LiveView stream it currently tracks for that node.
+
+```
+# Recommended short form: stop the currently active LiveView on node 1
+liveview stop 1
+
+# Explicit form: required when the local tracking state is lost (e.g. controller
+# restart) or when multiple LiveView streams coexist on the same node
+liveview stop 1 --video-stream-id <video-stream-id>
+```
+
+If no active LiveView stream is tracked for the given node, the controller
+reports `CHIP_ERROR_NOT_FOUND` and asks the caller to pass `--video-stream-id`
+explicitly. The `videoStreamId` value returned by the camera is also printed in
+the controller log when the stream is allocated (look for
+`videoStreamId: <N>`).
+
 ### 4. Running the Video Recording Upload Demo
 
 The Push AV Server acts as the recording destination (like a cloud service) for
