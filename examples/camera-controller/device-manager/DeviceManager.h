@@ -70,6 +70,30 @@ public:
                                    chip::Optional<uint32_t> minBitRate   = chip::NullOptional);
 
     /**
+     * @brief Starts a LiveView session that streams both audio and video.
+     *
+     * This first sends an AudioStreamAllocate command; once the camera responds
+     * with an audio stream ID, a VideoStreamAllocate command is sent, and a
+     * WebRTC session carrying both streams is established. The video allocation
+     * parameters are deferred and applied to the subsequent VideoStreamAllocate.
+     *
+     * @param nodeId       The node ID of the remote camera device.
+     * @param streamUsage  The usage of the stream(Recording, LiveView, etc) that this allocation is for.
+     * @param offerType    The type of WebRTC offer to use (ProvideOffer or SolicitOffer).
+     * @param minResWidth  Optional minimum width for the video stream. If not specified, uses default value.
+     * @param minResHeight Optional minimum height for the video stream. If not specified, uses default value.
+     * @param minFrameRate Optional minimum frame rate for the video stream. If not specified, uses default value.
+     * @param minBitRate   Optional minimum bit rate for the video stream. If not specified, uses default value.
+     * @return CHIP_ERROR  CHIP_NO_ERROR on success, or an appropriate error code on failure.
+     */
+    CHIP_ERROR AllocateLiveViewStream(chip::NodeId nodeId, uint8_t streamUsage,
+                                      WebRTCOfferType offerType             = WebRTCOfferType::kProvideOffer,
+                                      chip::Optional<uint16_t> minResWidth  = chip::NullOptional,
+                                      chip::Optional<uint16_t> minResHeight = chip::NullOptional,
+                                      chip::Optional<uint16_t> minFrameRate = chip::NullOptional,
+                                      chip::Optional<uint32_t> minBitRate   = chip::NullOptional);
+
+    /**
      * @brief Sends a VideoStreamDeallocate command to the device.
      *
      * @param nodeId        The node ID of the remote camera device.
@@ -77,6 +101,15 @@ public:
      * @return CHIP_ERROR   CHIP_NO_ERROR on success, or an appropriate error code on failure.
      */
     CHIP_ERROR DeallocateVideoStream(chip::NodeId nodeId, uint16_t videoStreamId);
+
+    /**
+     * @brief Sends an AudioStreamDeallocate command to the device.
+     *
+     * @param nodeId        The node ID of the remote camera device.
+     * @param audioStreamId The AudioStreamID for the stream to be deallocated.
+     * @return CHIP_ERROR   CHIP_NO_ERROR on success, or an appropriate error code on failure.
+     */
+    CHIP_ERROR DeallocateAudioStream(chip::NodeId nodeId, uint16_t audioStreamId);
 
     void HandleAttributeData(const chip::app::ConcreteDataAttributePath & path, chip::TLV::TLVReader & data);
 
@@ -104,21 +137,49 @@ public:
      */
     std::optional<uint16_t> GetActiveLiveViewStreamId(chip::NodeId nodeId) const;
 
+    /**
+     * @brief Look up the currently active LiveView audio stream ID for a given node.
+     *
+     * Returns the audio stream ID recorded when a LiveView WebRTC session was
+     * last established for that node, or std::nullopt if no LiveView audio
+     * stream is currently tracked for it.
+     *
+     * @param nodeId The node ID of the remote camera device.
+     */
+    std::optional<uint16_t> GetActiveLiveViewAudioStreamId(chip::NodeId nodeId) const;
+
 private:
     chip::Controller::DeviceCommissioner * mCommissioner = nullptr;
     chip::NodeId mNodeId                                 = chip::kUndefinedNodeId;
     uint8_t mStreamUsage                                 = 0;
     WebRTCOfferType mOfferType                           = WebRTCOfferType::kProvideOffer;
-    std::map<uint16_t, pid_t> mVideoStreamProcesses;            // Stream ID -> Process ID mapping
-    std::map<chip::NodeId, uint16_t> mActiveLiveViewByNode;     // Node ID -> active LiveView stream ID
-    uint16_t mPendingVideoStreamId = 0;                         // Track the stream ID we're setting up
+    std::map<uint16_t, pid_t> mVideoStreamProcesses;             // Video stream ID -> Video Process ID mapping
+    std::map<uint16_t, pid_t> mAudioStreamProcesses;             // Audio stream ID -> Audio Process ID mapping
+    std::map<chip::NodeId, uint16_t> mActiveLiveViewByNode;      // Node ID -> active LiveView video stream ID
+    std::map<chip::NodeId, uint16_t> mActiveLiveViewAudioByNode; // Node ID -> active LiveView audio stream ID
+    uint16_t mPendingVideoStreamId = 0;                          // Track the video stream ID we're setting up
+
+    // Audio stream ID allocated for the in-flight LiveView session, or
+    // std::nullopt when the current allocation carries no audio (e.g. the
+    // standalone WebRTC provider command).
+    std::optional<uint16_t> mPendingAudioStreamId;
+
+    // Deferred VideoStreamAllocate parameters captured by AllocateLiveViewStream
+    // and applied once the AudioStreamAllocate response arrives.
+    chip::Optional<uint16_t> mPendingMinResWidth;
+    chip::Optional<uint16_t> mPendingMinResHeight;
+    chip::Optional<uint16_t> mPendingMinFrameRate;
+    chip::Optional<uint32_t> mPendingMinBitRate;
 
     AVStreamManagement mAVStreamManagment;
 
     void HandleVideoStreamAllocateResponse(chip::TLV::TLVReader & data);
-    void InitiateWebRTCSession(uint16_t videoStreamId);
+    void HandleAudioStreamAllocateResponse(chip::TLV::TLVReader & data);
+    void InitiateWebRTCSession(uint16_t videoStreamId, std::optional<uint16_t> audioStreamId);
     void StartVideoStreamProcess(uint16_t streamId);
     void StopVideoStreamProcess(uint16_t streamId);
+    void StartAudioStreamProcess(uint16_t streamId);
+    void StopAudioStreamProcess(uint16_t streamId);
 };
 
 } // namespace camera

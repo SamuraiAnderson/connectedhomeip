@@ -32,6 +32,13 @@ constexpr uint16_t kMinHeight        = 480;
 constexpr uint16_t kMaxWidth         = 1920;
 constexpr uint16_t kMaxHeight        = 1080;
 
+// Audio stream defaults, aligned with the camera-app HAL streams and the
+// WebRTC Opus SDP negotiated by WebRTCManager (48 kHz, stereo, 64 kbps).
+constexpr uint8_t kAudioChannelCount = 2;
+constexpr uint32_t kAudioSampleRate  = 48000;
+constexpr uint32_t kAudioBitRate     = 64000;
+constexpr uint8_t kAudioBitDepth     = 24;
+
 } // namespace
 
 namespace camera {
@@ -134,6 +141,42 @@ CHIP_ERROR AVStreamManagement::DeallocateVideoStream(NodeId nodeId, EndpointId e
     return mCommissioner->GetConnectedDevice(nodeId, &mOnConnectedCallback, &mOnConnectionFailureCallback);
 }
 
+CHIP_ERROR AVStreamManagement::AllocateAudioStream(NodeId nodeId, EndpointId endpointId, uint8_t streamUsage)
+{
+    VerifyOrReturnError(mCommissioner != nullptr, CHIP_ERROR_INCORRECT_STATE);
+
+    ChipLogProgress(Camera, "Sending AudioStreamAllocate to (node=0x" ChipLogFormatX64 ", ep=%u, usage=%u)",
+                    ChipLogValueX64(nodeId), endpointId, streamUsage);
+
+    // Clear any stale data from previous requests.
+    mAudioStreamAllocate = {};
+
+    mAudioStreamAllocate.streamUsage  = static_cast<app::Clusters::Globals::StreamUsageEnum>(streamUsage);
+    mAudioStreamAllocate.audioCodec   = app::Clusters::CameraAvStreamManagement::AudioCodecEnum::kOpus;
+    mAudioStreamAllocate.channelCount = kAudioChannelCount;
+    mAudioStreamAllocate.sampleRate   = kAudioSampleRate;
+    mAudioStreamAllocate.bitRate      = kAudioBitRate;
+    mAudioStreamAllocate.bitDepth     = kAudioBitDepth;
+
+    mEndpointId  = endpointId;
+    mCommandType = CommandType::kAudioStreamAllocate;
+    return mCommissioner->GetConnectedDevice(nodeId, &mOnConnectedCallback, &mOnConnectionFailureCallback);
+}
+
+CHIP_ERROR AVStreamManagement::DeallocateAudioStream(NodeId nodeId, EndpointId endpointId, uint16_t audioStreamID)
+{
+    VerifyOrReturnError(mCommissioner != nullptr, CHIP_ERROR_INCORRECT_STATE);
+
+    ChipLogProgress(Camera, "Sending AudioStreamDeallocate to (node=0x" ChipLogFormatX64 ", ep=%u, audioStreamID=%u)",
+                    ChipLogValueX64(nodeId), endpointId, audioStreamID);
+
+    mAudioStreamDeallocate.audioStreamID = audioStreamID;
+
+    mEndpointId  = endpointId;
+    mCommandType = CommandType::kAudioStreamDeallocate;
+    return mCommissioner->GetConnectedDevice(nodeId, &mOnConnectedCallback, &mOnConnectionFailureCallback);
+}
+
 void AVStreamManagement::OnResponse(app::CommandSender * client, const app::ConcreteCommandPath & path,
                                     const app::StatusIB & status, TLV::TLVReader * data)
 {
@@ -172,6 +215,14 @@ void AVStreamManagement::OnDone(app::CommandSender * client)
         ChipLogProgress(Camera, "AVStreamManagement: Command VideoStreamDeallocate has been successfully processed.");
         break;
 
+    case CommandType::kAudioStreamAllocate:
+        ChipLogProgress(Camera, "AVStreamManagement: Command AudioStreamAllocate has been successfully processed.");
+        break;
+
+    case CommandType::kAudioStreamDeallocate:
+        ChipLogProgress(Camera, "AVStreamManagement: Command AudioStreamDeallocate has been successfully processed.");
+        break;
+
     default:
         ChipLogError(Camera, "AVStreamManagement: Unknown or unhandled command type in OnDone.");
         break;
@@ -197,6 +248,12 @@ CHIP_ERROR AVStreamManagement::SendCommandForType(CommandType commandType, Devic
     case CommandType::kVideoStreamDeallocate:
         return SendCommand(device, mEndpointId, app::Clusters::CameraAvStreamManagement::Id,
                            app::Clusters::CameraAvStreamManagement::Commands::VideoStreamDeallocate::Id, mVideoStreamDeallocate);
+    case CommandType::kAudioStreamAllocate:
+        return SendCommand(device, mEndpointId, app::Clusters::CameraAvStreamManagement::Id,
+                           app::Clusters::CameraAvStreamManagement::Commands::AudioStreamAllocate::Id, mAudioStreamAllocate);
+    case CommandType::kAudioStreamDeallocate:
+        return SendCommand(device, mEndpointId, app::Clusters::CameraAvStreamManagement::Id,
+                           app::Clusters::CameraAvStreamManagement::Commands::AudioStreamDeallocate::Id, mAudioStreamDeallocate);
     default:
         return CHIP_ERROR_INVALID_ARGUMENT;
     }

@@ -73,6 +73,26 @@ public:
      */
     CHIP_ERROR DeallocateVideoStream(chip::NodeId nodeId, chip::EndpointId endpointId, uint16_t videoStreamID);
 
+    /**
+     * @brief Sends an AudioStreamAllocate command to the device.
+     *
+     * @param nodeId       The node ID of the remote camera device.
+     * @param endpointId   The endpoint on which to send AudioStreamAllocate commands.
+     * @param streamUsage  The usage of the stream(Recording, LiveView, etc) that this allocation is for.
+     * @return CHIP_ERROR  CHIP_NO_ERROR on success, or an appropriate error code on failure.
+     */
+    CHIP_ERROR AllocateAudioStream(chip::NodeId nodeId, chip::EndpointId endpointId, uint8_t streamUsage);
+
+    /**
+     * @brief Sends an AudioStreamDeallocate command to the device.
+     *
+     * @param nodeId        The node ID of the remote camera device.
+     * @param endpointId    The endpoint on which to send AudioStreamDeallocate commands.
+     * @param audioStreamID The AudioStreamID for the stream to be deallocated.
+     * @return CHIP_ERROR   CHIP_NO_ERROR on success, or an appropriate error code on failure.
+     */
+    CHIP_ERROR DeallocateAudioStream(chip::NodeId nodeId, chip::EndpointId endpointId, uint16_t audioStreamID);
+
     /////////// CommandSender Callback Interface /////////
     virtual void OnResponse(chip::app::CommandSender * client, const chip::app::ConcreteCommandPath & path,
                             const chip::app::StatusIB & status, chip::TLV::TLVReader * data) override;
@@ -87,6 +107,8 @@ private:
         kUndefined             = 0,
         kVideoStreamAllocate   = 1,
         kVideoStreamDeallocate = 2,
+        kAudioStreamAllocate   = 3,
+        kAudioStreamDeallocate = 4,
     };
 
     template <class T>
@@ -124,6 +146,8 @@ private:
 
     chip::app::Clusters::CameraAvStreamManagement::Commands::VideoStreamAllocate::Type mVideoStreamAllocate;
     chip::app::Clusters::CameraAvStreamManagement::Commands::VideoStreamDeallocate::Type mVideoStreamDeallocate;
+    chip::app::Clusters::CameraAvStreamManagement::Commands::AudioStreamAllocate::Type mAudioStreamAllocate;
+    chip::app::Clusters::CameraAvStreamManagement::Commands::AudioStreamDeallocate::Type mAudioStreamDeallocate;
 };
 
 } // namespace camera

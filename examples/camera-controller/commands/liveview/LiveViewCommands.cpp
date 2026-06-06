@@ -37,8 +37,9 @@ CHIP_ERROR LiveViewStartCommand::RunCommand()
     // Use provided stream usage or default to 3 (LiveView)
     uint8_t streamUsage = mStreamUsage.HasValue() ? mStreamUsage.Value() : 3;
 
-    return camera::DeviceManager::Instance().AllocateVideoStream(mPeerNodeId, streamUsage, camera::WebRTCOfferType::kProvideOffer,
-                                                                 mMinResWidth, mMinResHeight, mMinFrameRate, mMinBitRate);
+    return camera::DeviceManager::Instance().AllocateLiveViewStream(mPeerNodeId, streamUsage,
+                                                                    camera::WebRTCOfferType::kProvideOffer, mMinResWidth,
+                                                                    mMinResHeight, mMinFrameRate, mMinBitRate);
 }
 
 CHIP_ERROR LiveViewStopCommand::RunCommand()
@@ -66,7 +67,23 @@ CHIP_ERROR LiveViewStopCommand::RunCommand()
                         ChipLogValueX64(mPeerNodeId));
     }
 
+    // Capture the active audio stream id (if any) before deallocating the video
+    // stream, since DeallocateVideoStream may clear this node's tracking state.
+    auto activeAudioStreamId = camera::DeviceManager::Instance().GetActiveLiveViewAudioStreamId(mPeerNodeId);
+
     camera::DeviceManager::Instance().StopVideoStream(effectiveStreamId);
 
-    return camera::DeviceManager::Instance().DeallocateVideoStream(mPeerNodeId, effectiveStreamId);
+    CHIP_ERROR error = camera::DeviceManager::Instance().DeallocateVideoStream(mPeerNodeId, effectiveStreamId);
+
+    // Tear down the associated audio stream, if one was allocated for this node.
+    if (activeAudioStreamId.has_value())
+    {
+        CHIP_ERROR audioError = camera::DeviceManager::Instance().DeallocateAudioStream(mPeerNodeId, activeAudioStreamId.value());
+        if (audioError != CHIP_NO_ERROR && error == CHIP_NO_ERROR)
+        {
+            error = audioError;
+        }
+    }
+
+    return error;
 }
