@@ -424,6 +424,26 @@ Protocols::InteractionModel::Status CameraAVStreamManager::AudioStreamAllocate(c
 {
     outStreamID = kInvalidStreamID;
 
+    // Validate the requested sample rate against the advertised
+    // MicrophoneCapabilities.supportedSampleRates. The cluster server only
+    // checks sampleRate > 0, so the supported-set check is enforced here.
+    AudioCapabilitiesStruct & micCapabilities = mCameraDeviceHAL->GetCameraHALInterface().GetMicrophoneCapabilities();
+    bool isSampleRateSupported                = false;
+    for (uint32_t supportedRate : micCapabilities.supportedSampleRates)
+    {
+        if (supportedRate == allocateArgs.sampleRate)
+        {
+            isSampleRateSupported = true;
+            break;
+        }
+    }
+
+    if (!isSampleRateSupported)
+    {
+        ChipLogError(Camera, "Requested audio sample rate %u is not supported", allocateArgs.sampleRate);
+        return Status::DynamicConstraintError;
+    }
+
     for (AudioStream & stream : mCameraDeviceHAL->GetCameraHALInterface().GetAvailableAudioStreams())
     {
         if (stream.IsCompatible(allocateArgs))
@@ -431,7 +451,10 @@ Protocols::InteractionModel::Status CameraAVStreamManager::AudioStreamAllocate(c
             outStreamID = stream.audioStreamParams.audioStreamID;
             if (!stream.isAllocated)
             {
-                stream.isAllocated = true;
+                // Adopt the controller-requested sample rate so the encoding
+                // pipeline started below runs at that rate.
+                stream.audioStreamParams.sampleRate = allocateArgs.sampleRate;
+                stream.isAllocated                  = true;
 
                 // Start the audio stream from HAL for serving.
                 mCameraDeviceHAL->GetCameraHALInterface().StartAudioStream(outStreamID);

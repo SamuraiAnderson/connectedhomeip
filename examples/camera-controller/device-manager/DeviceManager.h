@@ -84,14 +84,16 @@ public:
      * @param minResHeight Optional minimum height for the video stream. If not specified, uses default value.
      * @param minFrameRate Optional minimum frame rate for the video stream. If not specified, uses default value.
      * @param minBitRate   Optional minimum bit rate for the video stream. If not specified, uses default value.
+     * @param audioSampleRate Optional audio sample rate (Hz) for the audio stream. If not specified, uses default value.
      * @return CHIP_ERROR  CHIP_NO_ERROR on success, or an appropriate error code on failure.
      */
     CHIP_ERROR AllocateLiveViewStream(chip::NodeId nodeId, uint8_t streamUsage,
-                                      WebRTCOfferType offerType             = WebRTCOfferType::kProvideOffer,
-                                      chip::Optional<uint16_t> minResWidth  = chip::NullOptional,
-                                      chip::Optional<uint16_t> minResHeight = chip::NullOptional,
-                                      chip::Optional<uint16_t> minFrameRate = chip::NullOptional,
-                                      chip::Optional<uint32_t> minBitRate   = chip::NullOptional);
+                                      WebRTCOfferType offerType               = WebRTCOfferType::kProvideOffer,
+                                      chip::Optional<uint16_t> minResWidth    = chip::NullOptional,
+                                      chip::Optional<uint16_t> minResHeight   = chip::NullOptional,
+                                      chip::Optional<uint16_t> minFrameRate   = chip::NullOptional,
+                                      chip::Optional<uint32_t> minBitRate     = chip::NullOptional,
+                                      chip::Optional<uint32_t> audioSampleRate = chip::NullOptional);
 
     /**
      * @brief Sends a VideoStreamDeallocate command to the device.

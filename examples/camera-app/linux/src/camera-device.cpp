@@ -1296,7 +1296,7 @@ uint32_t CameraDevice::GetMaxContentBufferSize()
 AudioCapabilitiesStruct & CameraDevice::GetMicrophoneCapabilities()
 {
     static std::array<AudioCodecEnum, 2> audioCodecs = { AudioCodecEnum::kOpus, AudioCodecEnum::kAacLc };
-    static std::array<uint32_t, 2> sampleRates       = { 48000, 32000 }; // Sample rates in Hz
+    static std::array<uint32_t, 3> sampleRates       = { 48000, 32000, 16000 }; // Sample rates in Hz
     static std::array<uint8_t, 2> bitDepths          = { 24, 32 };
     static AudioCapabilitiesStruct audioCapabilities = { kMicrophoneMaxChannelCount, chip::Span<AudioCodecEnum>(audioCodecs),
                                                          chip::Span<uint32_t>(sampleRates), chip::Span<uint8_t>(bitDepths) };
@@ -1306,7 +1306,7 @@ AudioCapabilitiesStruct & CameraDevice::GetMicrophoneCapabilities()
 AudioCapabilitiesStruct & CameraDevice::GetSpeakerCapabilities()
 {
     static std::array<AudioCodecEnum, 2> audioCodecs   = { AudioCodecEnum::kOpus, AudioCodecEnum::kAacLc };
-    static std::array<uint32_t, 2> sampleRates         = { 48000, 32000 }; // Sample rates in Hz
+    static std::array<uint32_t, 3> sampleRates         = { 48000, 32000, 16000 }; // Sample rates in Hz
     static std::array<uint8_t, 2> bitDepths            = { 24, 32 };
     static AudioCapabilitiesStruct speakerCapabilities = { kSpeakerMaxChannelCount, chip::Span<AudioCodecEnum>(audioCodecs),
                                                            chip::Span<uint32_t>(sampleRates), chip::Span<uint8_t>(bitDepths) };

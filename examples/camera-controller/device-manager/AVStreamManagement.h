@@ -79,9 +79,11 @@ public:
      * @param nodeId       The node ID of the remote camera device.
      * @param endpointId   The endpoint on which to send AudioStreamAllocate commands.
      * @param streamUsage  The usage of the stream(Recording, LiveView, etc) that this allocation is for.
+     * @param sampleRate   Optional audio sample rate (Hz). If not specified, uses default value.
      * @return CHIP_ERROR  CHIP_NO_ERROR on success, or an appropriate error code on failure.
      */
-    CHIP_ERROR AllocateAudioStream(chip::NodeId nodeId, chip::EndpointId endpointId, uint8_t streamUsage);
+    CHIP_ERROR AllocateAudioStream(chip::NodeId nodeId, chip::EndpointId endpointId, uint8_t streamUsage,
+                                   chip::Optional<uint32_t> sampleRate = chip::NullOptional);
 
     /**
      * @brief Sends an AudioStreamDeallocate command to the device.

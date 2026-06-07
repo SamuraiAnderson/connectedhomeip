@@ -141,7 +141,8 @@ CHIP_ERROR AVStreamManagement::DeallocateVideoStream(NodeId nodeId, EndpointId e
     return mCommissioner->GetConnectedDevice(nodeId, &mOnConnectedCallback, &mOnConnectionFailureCallback);
 }
 
-CHIP_ERROR AVStreamManagement::AllocateAudioStream(NodeId nodeId, EndpointId endpointId, uint8_t streamUsage)
+CHIP_ERROR AVStreamManagement::AllocateAudioStream(NodeId nodeId, EndpointId endpointId, uint8_t streamUsage,
+                                                   Optional<uint32_t> sampleRate)
 {
     VerifyOrReturnError(mCommissioner != nullptr, CHIP_ERROR_INCORRECT_STATE);
 
@@ -151,10 +152,27 @@ CHIP_ERROR AVStreamManagement::AllocateAudioStream(NodeId nodeId, EndpointId end
     // Clear any stale data from previous requests.
     mAudioStreamAllocate = {};
 
+    // Validate the requested sample rate against the set the camera-app
+    // advertises in MicrophoneCapabilities.supportedSampleRates; fall back to
+    // the default for any unsupported value.
+    uint32_t requestedSampleRate = sampleRate.ValueOr(kAudioSampleRate);
+    switch (requestedSampleRate)
+    {
+    case 16000:
+    case 32000:
+    case 48000:
+        break;
+    default:
+        ChipLogProgress(Camera, "Requested audio sample rate (%u) not in supported set, falling back to %u",
+                        requestedSampleRate, kAudioSampleRate);
+        requestedSampleRate = kAudioSampleRate;
+        break;
+    }
+
     mAudioStreamAllocate.streamUsage  = static_cast<app::Clusters::Globals::StreamUsageEnum>(streamUsage);
     mAudioStreamAllocate.audioCodec   = app::Clusters::CameraAvStreamManagement::AudioCodecEnum::kOpus;
     mAudioStreamAllocate.channelCount = kAudioChannelCount;
-    mAudioStreamAllocate.sampleRate   = kAudioSampleRate;
+    mAudioStreamAllocate.sampleRate   = requestedSampleRate;
     mAudioStreamAllocate.bitRate      = kAudioBitRate;
     mAudioStreamAllocate.bitDepth     = kAudioBitDepth;
 

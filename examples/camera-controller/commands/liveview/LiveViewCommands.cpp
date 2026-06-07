@@ -39,7 +39,7 @@ CHIP_ERROR LiveViewStartCommand::RunCommand()
 
     return camera::DeviceManager::Instance().AllocateLiveViewStream(mPeerNodeId, streamUsage,
                                                                     camera::WebRTCOfferType::kProvideOffer, mMinResWidth,
-                                                                    mMinResHeight, mMinFrameRate, mMinBitRate);
+                                                                    mMinResHeight, mMinFrameRate, mMinBitRate, mAudioSampleRate);
 }
 
 CHIP_ERROR LiveViewStopCommand::RunCommand()

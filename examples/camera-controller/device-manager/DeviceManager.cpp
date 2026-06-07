@@ -125,7 +125,8 @@ CHIP_ERROR DeviceManager::AllocateVideoStream(NodeId nodeId, uint8_t streamUsage
 
 CHIP_ERROR DeviceManager::AllocateLiveViewStream(NodeId nodeId, uint8_t streamUsage, WebRTCOfferType offerType,
                                                  Optional<uint16_t> minWidth, Optional<uint16_t> minHeight,
-                                                 Optional<uint16_t> minFrameRate, Optional<uint32_t> minBitRate)
+                                                 Optional<uint16_t> minFrameRate, Optional<uint32_t> minBitRate,
+                                                 Optional<uint32_t> audioSampleRate)
 {
     ChipLogProgress(Camera, "Allocate a LiveView (audio + video) stream on the camera device.");
 
@@ -142,7 +143,10 @@ CHIP_ERROR DeviceManager::AllocateLiveViewStream(NodeId nodeId, uint8_t streamUs
     mPendingMinBitRate    = minBitRate;
     mPendingAudioStreamId = std::nullopt;
 
-    CHIP_ERROR error = mAVStreamManagment.AllocateAudioStream(nodeId, kCameraEndpointId, streamUsage);
+    // The audio stream is allocated synchronously here, so the requested sample
+    // rate can be passed straight through without deferring it like the video
+    // parameters above.
+    CHIP_ERROR error = mAVStreamManagment.AllocateAudioStream(nodeId, kCameraEndpointId, streamUsage, audioSampleRate);
 
     if (error != CHIP_NO_ERROR)
     {

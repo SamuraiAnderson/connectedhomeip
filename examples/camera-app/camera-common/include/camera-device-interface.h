@@ -70,9 +70,13 @@ struct AudioStream
 
     bool IsCompatible(const AudioStreamStruct & inputParams) const
     {
+        // Note: the sample rate is intentionally not part of the compatibility
+        // check. The requested sample rate is validated against the advertised
+        // MicrophoneCapabilities.supportedSampleRates and then applied to the
+        // selected stream by the delegate, so it must not filter streams here.
         return (audioStreamParams.audioCodec == inputParams.audioCodec &&
                 audioStreamParams.channelCount >= inputParams.channelCount &&
-                audioStreamParams.sampleRate >= inputParams.sampleRate && audioStreamParams.bitDepth >= inputParams.bitDepth);
+                audioStreamParams.bitDepth >= inputParams.bitDepth);
     }
 };
 
