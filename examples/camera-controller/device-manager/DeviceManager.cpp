@@ -390,15 +390,24 @@ void DeviceManager::OnWebRTCSessionEstablished(uint16_t streamId)
         if (streamId == mPendingVideoStreamId)
         {
             StartVideoStreamProcess(streamId);
-            mActiveLiveViewByNode[mNodeId] = streamId;
 
             // Start the audio pipeline (keyed by the camera-assigned audio stream
-            // ID) and track that ID for this node so it can be deallocated when
-            // the LiveView session is stopped.
+            // ID) when the camera allocated one for this LiveView session.
             if (mPendingAudioStreamId.has_value())
             {
                 StartAudioStreamProcess(mPendingAudioStreamId.value());
-                mActiveLiveViewAudioByNode[mNodeId] = mPendingAudioStreamId.value();
+            }
+
+            // Track the active LiveView stream ids for this node so `liveview
+            // stop` can target them by default. Guard against an undefined node
+            // id so we never record state under kUndefinedNodeId.
+            if (mNodeId != chip::kUndefinedNodeId)
+            {
+                mActiveLiveViewByNode[mNodeId] = streamId;
+                if (mPendingAudioStreamId.has_value())
+                {
+                    mActiveLiveViewAudioByNode[mNodeId] = mPendingAudioStreamId.value();
+                }
             }
 
             mPendingVideoStreamId = 0;
